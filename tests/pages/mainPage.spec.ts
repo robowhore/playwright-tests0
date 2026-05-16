@@ -1,132 +1,44 @@
 import { test, expect, Locator } from '@playwright/test';
+import { MainPage } from '../models/MainPage';
 
-interface Elements {
-  locator: (page: Page) => Locator;
-  name: string;
-  text?: string;
-  attribute?: {
-    type: string;
-    value: string;
-  };
-}
-
-const elements: Elements[] = [
-  {
-    locator: (page: Page): Locator =>
-      page.getByRole('link', { name: 'Playwright logo Playwright' }),
-    name: 'Playwright logo link',
-    text: 'Playwright',
-    attribute: {
-      type: 'href',
-      value: '/',
-    },
-  },
-  {
-    locator: (page: Page): Locator => page.getByRole('link', { name: 'Docs' }),
-    name: 'Docs link',
-    text: 'Docs',
-    attribute: {
-      type: 'href',
-      value: '/docs/intro',
-    },
-  },
-  {
-    locator: (page: Page): Locator => page.getByRole('link', { name: 'API' }),
-    name: 'API link',
-    text: 'API',
-    attribute: {
-      type: 'href',
-      value: '/docs/api/class-playwright',
-    },
-  },
-  {
-    locator: (page: Page): Locator => page.getByRole('button', { name: 'Node.js' }),
-    name: 'Node.js btn',
-    text: 'Node.js',
-  },
-  {
-    locator: (page: Page): Locator => page.getByLabel('GitHub repository'),
-    name: 'GitHub icon',
-    attribute: {
-      type: 'href',
-      value: 'https://github.com/microsoft/playwright',
-    },
-  },
-  {
-    locator: (page: Page): Locator => page.getByLabel('Discord server'),
-    name: 'Discord icon',
-    attribute: {
-      type: 'href',
-      value: 'https://aka.ms/playwright/discord',
-    },
-  },
-  {
-    locator: (page: Page): Locator => page.getByLabel('Switch between dark and light'),
-    name: 'light mode icon',
-  },
-  {
-    locator: (page: Page): Locator => page.getByLabel('Search (Ctrl+K)'),
-    name: 'Search input',
-  },
-  {
-    locator: (page: Page): Locator =>
-      page.getByRole('heading', { name: 'Playwright enables reliable' }),
-    name: 'Title',
-    text: 'Playwright enables reliable web automation for testing, scripting, and AI agents.',
-  },
-  {
-    locator: (page: Page): Locator => page.getByRole('link', { name: 'Get started' }),
-    name: 'Get started button',
-    text: 'Get started',
-    attribute: {
-      type: 'href',
-      value: '/docs/intro',
-    },
-  },
-];
-
-const lightMods = ['light', 'dark'];
+let mainPage: MainPage;
 
 test.describe('тесты главной страницы', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('https://playwright.dev/');
+    mainPage = new MainPage(page);
+    await mainPage.openMainPage();
   });
-  test('Проверка отображения элементов навигации хедера', async ({ page }) => {
-    elements.forEach(({ locator, name }) => {
-      test.step(`Проверка отображения элемента ${name}`, async () => {
-        await expect.soft(locator(page)).toBeVisible();
-      });
+  test('Проверка отображения элементов навигации хедера', async () => {
+    await mainPage.checkElementsVisability();
+  });
+  test('Проверка названия элементов навигации хедера', async () => {
+    await mainPage.checkElementsText();
+  });
+  test('Проверка атрибутов href элементов навигации хедера', async () => {
+    await mainPage.checkElementsHrefAttribute();
+  });
+  test('Проверка переключения лайт-мода', async () => {
+    test.step('Нажатие на иконку переключения лайт мода', async () => {
+      await mainPage.clickSwitchLightModeIcon();
+    });
+    test.step('Проверка смены значения атрибута', async () => {
+      await mainPage.checkDataThemeAttributeValue();
     });
   });
-  test('Проверка названия элементов навигации хедера', async ({ page }) => {
-    elements.forEach(({ locator, name, text }) => {
-      if (text) {
-        test.step(`Проверка названия элемента ${name}`, async () => {
-          await expect(locator(page)).toContainText(text);
-        });
-      }
+  test(`Проверка стилей со светлой темой`, async () => {
+    await test.step('Установка светлой темы', async () => {
+      await mainPage.setLightMode();
+    });
+    await test.step('Скриншотная проверка с активной светлой темой', async () => {
+      await mainPage.checkLayoutWithLightMode();
     });
   });
-  test('Проверка атрибутов href элементов навигации хедера', async ({ page }) => {
-    elements.forEach(({ locator, name, attribute }) => {
-      if (attribute) {
-        test.step(`Проверка атрибутов href элемента ${name}`, async () => {
-          await expect(locator(page)).toHaveAttribute(attribute.type, attribute.value);
-        });
-      }
+  test(`Проверка стилей с темной темой`, async () => {
+    await test.step('Установка темной темы', async () => {
+      await mainPage.setDarkMode();
     });
-  });
-  test('Проверка переключения лайт-мода', async ({ page }) => {
-    await page.getByLabel('Switch between dark and light').click();
-    await page.getByLabel('Switch between dark and light').click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  });
-  lightMods.forEach((value) => {
-    test(`Проверка стилей активного ${value} мода`, async ({ page }) => {
-      await page.evaluate((value) => {
-        document.querySelector('html')?.setAttribute('data-theme', value);
-      }, value);
-      await expect(page).toHaveScreenshot(`pageWith${value}Mode.png`);
+    await test.step('Скриншотная проверка с активной темной темой', async () => {
+      await mainPage.checkLayoutWithDarkMode();
     });
   });
 });

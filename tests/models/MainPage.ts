@@ -1,8 +1,18 @@
-import { Page } from '@playwright/test';
+import test, { expect, Locator, Page } from '@playwright/test';
 
-class MainPage {
+interface Elements {
+  locator: (page: Page) => Locator;
+  name: string;
+  text?: string;
+  attribute?: {
+    type: string;
+    value: string;
+  };
+}
+
+export class MainPage {
   readonly page: Page;
-  readonly elements;
+  readonly elements: Elements[];
 
   constructor(page: Page) {
     this.page = page;
@@ -80,5 +90,56 @@ class MainPage {
         },
       },
     ];
+  }
+  async openMainPage() {
+    await this.page.goto('https://playwright.dev/');
+  }
+  async checkElementsVisability() {
+    for (const { locator, name } of this.elements) {
+      await test.step(`Проверка отображения элемента ${name}`, async () => {
+        await expect.soft(locator(this.page)).toBeVisible();
+      });
+    }
+  }
+  async checkElementsText() {
+    for (const { locator, name, text } of this.elements) {
+      if (text) {
+        await test.step(`Проверка названия элемента ${name}`, async () => {
+          await expect(locator(this.page)).toContainText(text);
+        });
+      }
+    }
+  }
+  async checkElementsHrefAttribute() {
+    for (const { locator, name, attribute } of this.elements) {
+      if (attribute) {
+        await test.step(`Проверка атрибутов href элемента ${name}`, async () => {
+          await expect(locator(this.page)).toHaveAttribute(attribute.type, attribute.value);
+        });
+      }
+    }
+  }
+  async clickSwitchLightModeIcon() {
+    await this.page.getByLabel('Switch between dark and light').click();
+    await this.page.getByLabel('Switch between dark and light').click();
+  }
+  async checkDataThemeAttributeValue() {
+    await expect.soft(this.page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  }
+  async setLightMode() {
+    await this.page.evaluate(() => {
+      document.querySelector('html')?.setAttribute('data-theme', 'light');
+    });
+  }
+  async setDarkMode() {
+    await this.page.evaluate(() => {
+      document.querySelector('html')?.setAttribute('data-theme', 'dark');
+    });
+  }
+  async checkLayoutWithLightMode() {
+    await expect(this.page).toHaveScreenshot(`pageWithLightMode.png`);
+  }
+  async checkLayoutWithDarkMode() {
+    await expect(this.page).toHaveScreenshot(`pageWithDarkMode.png`);
   }
 }
